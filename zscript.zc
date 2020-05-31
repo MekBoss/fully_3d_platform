@@ -1,0 +1,82 @@
+version "4.3.3"
+
+class platform_event : eventhandler
+{
+override void worldthingspawned(worldevent e)
+{
+    if(e.thing.getclass() == 'unknown')
+    {
+        actor.spawn("platform_bonus", e.thing.pos + (0, 0, 5) );
+        e.thing.destroy();
+    }
+}
+
+}
+
+
+
+class platform_bonus : actor
+{
+override void beginplay()
+{
+    changestatnum(32);
+    super.beginplay();
+}
+
+default
+{
+    +solid
+    +nogravity
+    radius 50;
+    height 5;
+    speed 10;
+}
+
+states
+{
+    spawn:
+        bon1 a 1 act_as_platform();
+    loop;
+}
+
+private array<actor> on_platform_things;
+private vector3 moving_dir;
+
+override bool CanCollideWith (Actor other, bool passive)
+{
+    if(!passive &&
+        abs(other.pos.z - self.pos.z) <= height &&
+        other.pos.x + other.radius >= pos.x - radius && other.pos.x - other.radius <= pos.x + radius &&
+        other.pos.y + other.radius >= pos.y - radius && other.pos.y - other.radius <= pos.y + radius
+    )
+    {
+        on_platform_things.push(other);
+        return false;
+    }
+
+    else return super.CanCollideWith(other, passive);
+}
+
+
+private void act_as_platform()
+{
+    if(!move_platform)
+    {
+        vel = (0, 0, 0);
+    }
+
+    if(move_platform)
+    {
+        moving_dir = (platform_speed, 0, 0);
+        vel = moving_dir;
+        //console.printf("array size is %i", on_platform_things.size() );
+        for(uint i = 0; i < on_platform_things.size(); i++)
+        {
+            on_platform_things[i].setorigin(on_platform_things[i].pos + moving_dir, true);
+        }
+    }
+
+    on_platform_things.clear();
+}
+
+}

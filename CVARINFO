@@ -1,0 +1,2 @@
+server noarchive bool move_platform=false;
+server noarchive int platform_speed=3;

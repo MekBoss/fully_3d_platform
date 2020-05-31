@@ -1,2 +1,2 @@
-# full_3d_platform
-Example of realization for full 3D movings platform for Gzdoom.
+Simple example of using Gzdoom actors as fully 3D moving platform.
+For someone who dont know, Doom ports family cant move sectors like Build engine.

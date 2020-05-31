@@ -1,0 +1,8 @@
+map 3dplatform "3d platform test"
+{
+	sky1 = "SKY1"
+
+   EventHandlers = "platform_event"
+
+   music = "d_runnin"
+}

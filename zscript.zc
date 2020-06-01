@@ -34,12 +34,12 @@ default
 states
 {
     spawn:
-        bon1 a 1 act_as_platform();
+        bon1 a 1 act_as_platform(PMF_PRESERVE_MOMENTUM);
     loop;
 }
 
-private array<actor> on_platform_things;
-private vector3 moving_dir;
+protected array<actor> platform_things, last_platform_things;
+protected vector3 moving_dir;
 
 override bool CanCollideWith (Actor other, bool passive)
 {
@@ -49,7 +49,7 @@ override bool CanCollideWith (Actor other, bool passive)
         other.pos.y + other.radius >= pos.y - radius && other.pos.y - other.radius <= pos.y + radius
     )
     {
-        on_platform_things.push(other);
+        platform_things.push(other);
         return false;
     }
 
@@ -64,14 +64,14 @@ override void tick()
     console.printf("after speed %f", vel.length() );
 }
 /*/
-private bool check_collision(vector2 offset)
+protected bool check_collision(vector2 offset)
 {
     bool result = trymove(pos.xy + offset, true);
     
     return result;
 }
 
-private void act_as_platform()
+protected void act_as_platform(uint flags = PMF_NONE)
 {
     if(!move_platform)
     {
@@ -81,13 +81,13 @@ private void act_as_platform()
     if(move_platform)
     {
         moving_dir = (platform_speed, 0, 0);
-
+        //if platform cant move in the direction of movement
         if(!check_collision(moving_dir.xy))
         {
             if(vel != (0, 0, 0) )
-                for(uint i = 0; i < on_platform_things.size(); i++)
+                for(uint i = 0; i < platform_things.size(); i++)
                 {
-                    let lifter = on_platform_things[i];
+                    let lifter = platform_things[i];
 
                     vector3 diff = self.vec3to(lifter);
                     //if on the ledge of the platform...
@@ -103,27 +103,43 @@ private void act_as_platform()
                     }
                 }
             vel = (0, 0, 0); 
-            on_platform_things.clear();
+            platform_things.clear();
             return;
         }
 
 
         vel = moving_dir;
 
-        //console.printf("array size is %i", on_platform_things.size() );
+        //console.printf("array size is %i", platform_things.size() );
+        //move all "attached" things
         if(moving_dir != (0, 0, 0) )
-            for(uint i = 0; i < on_platform_things.size(); i++)
+            for(uint i = 0; i < platform_things.size(); i++)
             {
-                on_platform_things[i].setorigin(on_platform_things[i].pos + moving_dir, true);
+                platform_things[i].setorigin(platform_things[i].pos + moving_dir, true);
             }
     }
+    //check, and also store, is some  actor jump from platform in current tick
+    //if yes, add to it velocity platforms velocity
+    if(flags & PMF_PRESERVE_MOMENTUM)
+    {
+        for(uint i = 0; i < last_platform_things.size(); i++)
+        {
+            //actor stood on platform on a last tick, but in current it absent
+            //meant it jump down
+            if(platform_things.find(last_platform_things[i]) == platform_things.size() )
+                last_platform_things[i].vel += vel;
+        }
+        last_platform_things.clear();
+        last_platform_things.copy(platform_things);
+    }
 
-    on_platform_things.clear();
+    platform_things.clear();
 }
 
 }
 
 enum platform_move_flags
 {
+    PMF_NONE = 0,
     PMF_PRESERVE_MOMENTUM = 1,//if actor jump down from platform add some momenturm to it
 };

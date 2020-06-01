@@ -14,7 +14,6 @@ override void worldthingspawned(worldevent e)
 }
 
 
-
 class platform_bonus : actor
 {
 override void beginplay()
@@ -29,7 +28,7 @@ default
     +nogravity
     radius 50;
     height 5;
-    speed 10;
+    speed 3;
 }
 
 states
@@ -56,27 +55,75 @@ override bool CanCollideWith (Actor other, bool passive)
 
     else return super.CanCollideWith(other, passive);
 }
-
+/*/
+override void tick()
+{
+    console.printf("before speed %f", vel.length() );
+    act_as_platform();
+    super.tick();
+    console.printf("after speed %f", vel.length() );
+}
+/*/
+private bool check_collision(vector2 offset)
+{
+    bool result = trymove(pos.xy + offset, true);
+    
+    return result;
+}
 
 private void act_as_platform()
 {
     if(!move_platform)
     {
-        vel = (0, 0, 0);
+        vel = (0, 0, 0); 
     }
 
     if(move_platform)
     {
         moving_dir = (platform_speed, 0, 0);
-        vel = moving_dir;
-        //console.printf("array size is %i", on_platform_things.size() );
-        for(uint i = 0; i < on_platform_things.size(); i++)
+
+        if(!check_collision(moving_dir.xy))
         {
-            on_platform_things[i].setorigin(on_platform_things[i].pos + moving_dir, true);
+            if(vel != (0, 0, 0) )
+                for(uint i = 0; i < on_platform_things.size(); i++)
+                {
+                    let lifter = on_platform_things[i];
+
+                    vector3 diff = self.vec3to(lifter);
+                    //if on the ledge of the platform...
+                    if(diff dot diff >= radius * radius)
+                    {
+                        //... but there are space to move actor further
+                        ///in the direction of the move...
+                        if(trymove(lifter.pos.xy + vel.xy, true))
+                            lifter.vel += vel;
+                        //...else move actor back from the collision object
+                        else
+                            lifter.setorigin(lifter.pos - (vel.unit() * lifter.radius), true);
+                    }
+                }
+            vel = (0, 0, 0); 
+            on_platform_things.clear();
+            return;
         }
+
+
+        vel = moving_dir;
+
+        //console.printf("array size is %i", on_platform_things.size() );
+        if(moving_dir != (0, 0, 0) )
+            for(uint i = 0; i < on_platform_things.size(); i++)
+            {
+                on_platform_things[i].setorigin(on_platform_things[i].pos + moving_dir, true);
+            }
     }
 
     on_platform_things.clear();
 }
 
 }
+
+enum platform_move_flags
+{
+    PMF_PRESERVE_MOMENTUM = 1,//if actor jump down from platform add some momenturm to it
+};
